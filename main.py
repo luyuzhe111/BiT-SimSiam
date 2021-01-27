@@ -35,7 +35,7 @@ def main(device, args):
         **args.dataloader_kwargs
     )
     test_loader = torch.utils.data.DataLoader(
-        dataset=get_dataset( 
+        dataset=get_dataset(
             transform=get_aug(train=False, train_classifier=False, **args.aug_kwargs), 
             train=False,
             **args.dataset_kwargs),
@@ -112,8 +112,6 @@ if __name__ == "__main__":
     main(device=args.device, args=args)
 
     completed_log_dir = args.log_dir.replace('in-progress', 'debug' if args.debug else 'completed')
-
-
 
     os.rename(args.log_dir, completed_log_dir)
     print(f'Log file has been saved to {completed_log_dir}')

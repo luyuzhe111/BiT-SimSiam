@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F 
 from torchvision.models import resnet50
 
-
 def D(p, z, version='simplified'): # negative cosine similarity
     if version == 'original':
         z = z.detach() # stop gradient
@@ -42,6 +41,7 @@ class projection_MLP(nn.Module):
             nn.BatchNorm1d(hidden_dim)
         )
         self.num_layers = 3
+
     def set_layers(self, num_layers):
         self.num_layers = num_layers
 

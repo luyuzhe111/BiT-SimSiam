@@ -7,7 +7,7 @@ label_dict = {'MEL': 0, 'NV': 1, 'BCC': 2, 'AKIEC': 3, 'BKL': 4, 'DF': 5, 'VASC'
 targets = []
 
 data_list = []
-data_root_dir = '/Data/luy8/data/ham-10000/resized_data'
+data_root_dir = '/Data/luy8/data/ham-10000/resized_debug_data'
 for index, row in df.iterrows():
     # make csv for ref
     series = row['MEL':'VASC']
@@ -25,7 +25,7 @@ for index, row in df.iterrows():
 df.insert(8, 'target', targets)
 df.to_csv('ham-10000/csv/ham_data_with_label.csv')
 
-with open('ham-10000/json/ham_data.json', 'w') as f:
+with open('ham-10000/json/ham_debug_data.json', 'w') as f:
     json.dump(data_list, f)
 
 

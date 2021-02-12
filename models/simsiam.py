@@ -111,7 +111,6 @@ class SimSiam(nn.Module):
 
 
 
-
 if __name__ == "__main__":
     model = SimSiam()
     x1 = torch.randn((2, 3, 224, 224))

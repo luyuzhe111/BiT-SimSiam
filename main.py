@@ -13,6 +13,7 @@ from datasets import get_dataset
 from optimizers import get_optimizer, LR_Scheduler
 from linear_eval import main as linear_eval
 from datetime import datetime
+from torch.cuda.amp import autocast, GradScaler
 
 def main(device, args):
 
@@ -47,6 +48,7 @@ def main(device, args):
     # define model
     model = get_model(args.model).to(device)
     model = torch.nn.DataParallel(model)
+    scalar = GradScaler()
 
     # define optimizer
     optimizer = get_optimizer(
@@ -57,8 +59,8 @@ def main(device, args):
 
     lr_scheduler = LR_Scheduler(
         optimizer,
-        args.train.warmup_epochs, args.train.warmup_lr*args.train.batch_size/256, 
-        args.train.num_epochs, args.train.base_lr*args.train.batch_size/256, args.train.final_lr*args.train.batch_size/256, 
+        args.train.warmup_epochs, args.train.warmup_lr*args.train.batch_size/256,
+        args.train.num_epochs, args.train.base_lr*args.train.batch_size/256, args.train.final_lr*args.train.batch_size/256,
         len(train_loader),
         constant_predictor_lr=True # see the end of section 4.2 predictor
     )
@@ -72,12 +74,16 @@ def main(device, args):
         
         local_progress=tqdm(train_loader, desc=f'Epoch {epoch}/{args.train.num_epochs}', disable=args.hide_progress)
         for idx, ((images1, images2), labels) in enumerate(local_progress):
-
             model.zero_grad()
-            data_dict = model.forward(images1.to(device, non_blocking=True), images2.to(device, non_blocking=True))
-            loss = data_dict['loss'].mean() # ddp
-            loss.backward()
-            optimizer.step()
+            with torch.cuda.amp.autocast():
+                data_dict = model.forward(images1.to(device, non_blocking=True), images2.to(device, non_blocking=True))
+                loss = data_dict['loss'].mean() # ddp
+
+            scalar.scale(loss).backward()
+            scalar.step(optimizer)
+            scalar.update()
+            # loss.backward()
+            # optimizer.step()
             lr_scheduler.step()
             data_dict.update({'lr':lr_scheduler.get_lr()})
             
@@ -85,7 +91,7 @@ def main(device, args):
             logger.update_scalers(data_dict)
 
         if args.train.knn_monitor and epoch % args.train.knn_interval == 0: 
-            accuracy = knn_monitor(model.module.backbone, memory_loader, test_loader, device, k=min(args.train.knn_k, len(memory_loader.dataset)), hide_progress=args.hide_progress) 
+            accuracy = knn_monitor(model.module.backbone, memory_loader, test_loader, device, dataset=args.dataset.name, k=min(args.train.knn_k, len(memory_loader.dataset)), hide_progress=args.hide_progress)
         
         epoch_dict = {"epoch":epoch, "accuracy":accuracy}
         global_progress.set_postfix(epoch_dict)

@@ -16,9 +16,9 @@ class LR_Scheduler(object):
         self.optimizer = optimizer
         self.iter = 0
         self.current_lr = 0
+
     def step(self):
         for param_group in self.optimizer.param_groups:
-
             if self.constant_predictor_lr and param_group['name'] == 'predictor':
                 param_group['lr'] = self.base_lr
             else:
@@ -27,8 +27,10 @@ class LR_Scheduler(object):
         self.iter += 1
         self.current_lr = lr
         return lr
+
     def get_lr(self):
         return self.current_lr
+
 
 if __name__ == "__main__":
     import torchvision

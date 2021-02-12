@@ -1,6 +1,7 @@
 import torch
 import torchvision
 from .random_dataset import RandomDataset
+from .ham_dataset import DataLoader
 
 
 def get_dataset(dataset, data_dir, transform, train=True, download=False, debug_subset_size=None):
@@ -16,6 +17,8 @@ def get_dataset(dataset, data_dir, transform, train=True, download=False, debug_
         dataset = torchvision.datasets.ImageNet(data_dir, split='train' if train == True else 'val', transform=transform, download=download)
     elif dataset == 'random':
         dataset = RandomDataset()
+    elif dataset == 'ham':
+        dataset = DataLoader(data_dir, transform=transform, split='train' if train == True else 'val')
     else:
         raise NotImplementedError
 
@@ -23,4 +26,5 @@ def get_dataset(dataset, data_dir, transform, train=True, download=False, debug_
         dataset = torch.utils.data.Subset(dataset, range(0, debug_subset_size)) # take only one batch
         dataset.classes = dataset.dataset.classes
         dataset.targets = dataset.dataset.targets
+
     return dataset

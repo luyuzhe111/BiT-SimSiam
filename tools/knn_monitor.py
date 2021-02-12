@@ -1,11 +1,14 @@
 from tqdm import tqdm
 import torch.nn.functional as F 
 import torch
+import torch.nn as nn
+import numpy as np
+from sklearn.metrics import balanced_accuracy_score
 # code copied from https://colab.research.google.com/github/facebookresearch/moco/blob/colab-notebook/colab/moco_cifar10_demo.ipynb#scrollTo=RI1Y8bSImD7N
 # test using a knn monitor
-def knn_monitor(net, memory_data_loader, test_data_loader, epoch, k=200, t=0.1, hide_progress=False):
+def knn_monitor(net, memory_data_loader, test_data_loader, epoch, dataset=None, k=200, t=0.1, hide_progress=False):
     net.eval()
-    classes = len(memory_data_loader.dataset.classes)
+    classes = len(memory_data_loader.dataset.classes) if isinstance(memory_data_loader.dataset.classes, list) else memory_data_loader.dataset.classes
     total_top1, total_top5, total_num, feature_bank = 0.0, 0.0, 0, []
     with torch.no_grad():
         # generate feature bank
@@ -19,6 +22,8 @@ def knn_monitor(net, memory_data_loader, test_data_loader, epoch, k=200, t=0.1, 
         feature_labels = torch.tensor(memory_data_loader.dataset.targets, device=feature_bank.device)
         # loop test data to predict the label by weighted knn search
         test_bar = tqdm(test_data_loader, desc='kNN', disable=hide_progress)
+        pred_hist = []
+        tar_hist = []
         for data, target in test_bar:
             data, target = data.cuda(non_blocking=True), target.cuda(non_blocking=True)
             feature = net(data)
@@ -26,10 +31,17 @@ def knn_monitor(net, memory_data_loader, test_data_loader, epoch, k=200, t=0.1, 
             
             pred_labels = knn_predict(feature, feature_bank, feature_labels, classes, k, t)
 
+            pred_hist = np.concatenate((pred_hist, pred_labels[:, 0].data.cpu().numpy()), axis=0)
+            tar_hist = np.concatenate((tar_hist, target.data.cpu().numpy()), axis=0)
+
             total_num += data.size(0)
             total_top1 += (pred_labels[:, 0] == target).float().sum().item()
-            test_bar.set_postfix({'Accuracy':total_top1 / total_num * 100})
-    return total_top1 / total_num * 100
+            if dataset == 'ham':
+                test_bar.set_postfix({'Accuracy': balanced_accuracy_score(tar_hist, pred_hist) * 100})
+            else:
+                test_bar.set_postfix({'Accuracy':total_top1 / total_num * 100})
+
+    return balanced_accuracy_score(tar_hist, pred_hist) * 100 if dataset == 'ham' else total_top1 / total_num * 100
 
 # knn monitor as in InstDisc https://arxiv.org/abs/1805.01978
 # implementation follows http://github.com/zhirongw/lemniscate.pytorch and https://github.com/leftthomas/SimCLR

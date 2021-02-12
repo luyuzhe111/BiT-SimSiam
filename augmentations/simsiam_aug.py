@@ -26,6 +26,7 @@ class SimSiamTransform():
             T.ToTensor(),
             T.Normalize(*mean_std)
         ])
+
     def __call__(self, x):
         x1 = self.transform(x)
         x2 = self.transform(x)

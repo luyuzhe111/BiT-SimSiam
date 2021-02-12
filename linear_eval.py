@@ -10,6 +10,8 @@ from models import get_model, get_backbone
 from tools import AverageMeter
 from datasets import get_dataset
 from optimizers import get_optimizer, LR_Scheduler
+import numpy as np
+from sklearn.metrics import balanced_accuracy_score
 
 def main(args):
 
@@ -34,9 +36,8 @@ def main(args):
         **args.dataloader_kwargs
     )
 
-
     model = get_backbone(args.model.backbone)
-    classifier = nn.Linear(in_features=model.output_dim, out_features=10, bias=True).to(args.device)
+    classifier = nn.Linear(in_features=model.output_dim, out_features=7, bias=True).to(args.device)
 
     assert args.eval_from is not None
     save_dict = torch.load(args.eval_from, map_location='cpu')
@@ -93,13 +94,20 @@ def main(args):
     classifier.eval()
     correct, total = 0, 0
     acc_meter.reset()
+    pred_hist = []
+    tar_hist = []
     for idx, (images, labels) in enumerate(test_loader):
         with torch.no_grad():
             feature = model(images.to(args.device))
             preds = classifier(feature).argmax(dim=1)
+
+            pred_hist = np.concatenate((pred_hist, preds.data.cpu().numpy()), axis=0)
+            tar_hist = np.concatenate((tar_hist, labels.data.numpy()), axis=0)
+
             correct = (preds == labels.to(args.device)).sum().item()
             acc_meter.update(correct/preds.shape[0])
-    print(f'Accuracy = {acc_meter.avg*100:.2f}')
+
+    print(f'Accuracy = {acc_meter.avg*100:.2f}' if args.dataset.name != 'ham' else f'Accuracy{balanced_accuracy_score(tar_hist, pred_hist) * 100}')
 
 
 if __name__ == "__main__":

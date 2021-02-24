@@ -26,6 +26,7 @@ class AverageMeter():
         fmtstr = '{name} {val' + self.fmt + '} ({avg' + self.fmt + '})'
         return fmtstr.format(**self.__dict__)
 
+
 if __name__ == "__main__":
     meter = AverageMeter('sldk')
     print(meter.log)

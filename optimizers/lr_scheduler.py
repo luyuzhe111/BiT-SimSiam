@@ -4,7 +4,7 @@ import numpy as np
 
 
 class LR_Scheduler(object):
-    def __init__(self, optimizer, warmup_epochs, warmup_lr, num_epochs, base_lr, final_lr, iter_per_epoch, constant_predictor_lr=False):
+    def __init__(self, optimizer, warmup_epochs, warmup_lr, num_epochs, base_lr, final_lr, iter_per_epoch, resume_from=None, constant_predictor_lr=False):
         self.base_lr = base_lr
         self.constant_predictor_lr = constant_predictor_lr
         warmup_iter = iter_per_epoch * warmup_epochs
@@ -14,8 +14,8 @@ class LR_Scheduler(object):
         
         self.lr_schedule = np.concatenate((warmup_lr_schedule, cosine_lr_schedule))
         self.optimizer = optimizer
-        self.iter = 0
-        self.current_lr = 0
+        self.iter = 0 if resume_from is None else iter_per_epoch * resume_from
+        self.current_lr = 0 if resume_from is None else self.lr_schedule[self.iter]
 
     def step(self):
         for param_group in self.optimizer.param_groups:

@@ -4,20 +4,26 @@ from torch.utils import data
 import cv2
 import torch
 import json
-import imgaug.augmenters as iaa
 import os
+import random
 
 class DataLoader(data.Dataset):
-    def __init__(self, data_dir, transform=None, split=None, aug=False):
+    def __init__(self, data_dir, transform=None, split=None, finetune=False, aug=False):
         if split == 'train':
-            data_dir = os.path.join(data_dir, 'train_rs.json')
+            data_dir = os.path.join(data_dir, 'train.json')
         elif split == 'val':
             data_dir = os.path.join(data_dir, 'validation.json')
+        elif split == 'test':
+            data_dir = os.path.join(data_dir, 'test.json')
         else:
             raise Exception('split not found')
 
         with open(data_dir) as json_file:
             data = json.load(json_file)
+            if split == 'train' and finetune:
+                random.seed(0)
+                random.shuffle(data)
+                data = data[:int(len(data)/3)]
 
         self.data = data
         self.data_dir = data_dir
@@ -51,22 +57,10 @@ class DataLoader(data.Dataset):
             if self.transform is not None:
                 img = self.transform(img)
             return img, label
-
-    def augmentation(self, pil_img):
-        input_img = np.expand_dims(pil_img, axis=0)
-
-        if self.split == 'train':
-            seq = iaa.Sequential([
-                iaa.Crop(px=16),
-                iaa.Fliplr(0.5),  # horizontal flips
-            ], random_order=True)  # apply augmenters in random order
-            images_aug = seq(images=input_img)
-
-            # if we would like to see the data augmentation
-            # seq.show_grid(images_aug[0], cols=2, rows=2)
-            return images_aug[0]
-
-        return pil_img
+        else:
+            if self.transform is not None:
+                img = self.transform(img)
+            return img, label
 
     def __len__(self):
         return len(self.data)

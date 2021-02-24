@@ -7,6 +7,7 @@ dataset:
 model: 
   name: simsiam
   backbone: resnet18_cifar_variant1
+  pretrain: False
   proj_layers: 2
 
 train:

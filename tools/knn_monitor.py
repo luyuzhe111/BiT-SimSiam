@@ -2,11 +2,13 @@ from tqdm import tqdm
 import torch.nn.functional as F 
 import torch
 import torch.nn as nn
+import os
 import numpy as np
+import pandas as pd
 from sklearn.metrics import balanced_accuracy_score
 # code copied from https://colab.research.google.com/github/facebookresearch/moco/blob/colab-notebook/colab/moco_cifar10_demo.ipynb#scrollTo=RI1Y8bSImD7N
 # test using a knn monitor
-def knn_monitor(net, memory_data_loader, test_data_loader, epoch, dataset=None, k=200, t=0.1, hide_progress=False):
+def knn_monitor(net, memory_data_loader, test_data_loader, epoch, logger_dir=None, dataset=None, k=200, t=0.1, hide_progress=False):
     net.eval()
     classes = len(memory_data_loader.dataset.classes) if isinstance(memory_data_loader.dataset.classes, list) else memory_data_loader.dataset.classes
     total_top1, total_top5, total_num, feature_bank = 0.0, 0.0, 0, []
@@ -22,6 +24,7 @@ def knn_monitor(net, memory_data_loader, test_data_loader, epoch, dataset=None, 
         feature_labels = torch.tensor(memory_data_loader.dataset.targets, device=feature_bank.device)
         # loop test data to predict the label by weighted knn search
         test_bar = tqdm(test_data_loader, desc='kNN', disable=hide_progress)
+
         pred_hist = []
         tar_hist = []
         for data, target in test_bar:
@@ -36,12 +39,18 @@ def knn_monitor(net, memory_data_loader, test_data_loader, epoch, dataset=None, 
 
             total_num += data.size(0)
             total_top1 += (pred_labels[:, 0] == target).float().sum().item()
-            if dataset == 'ham':
-                test_bar.set_postfix({'Accuracy': balanced_accuracy_score(tar_hist, pred_hist) * 100})
-            else:
-                test_bar.set_postfix({'Accuracy':total_top1 / total_num * 100})
+            test_bar.set_postfix({'Accuracy':total_top1 / total_num * 100})
 
-    return balanced_accuracy_score(tar_hist, pred_hist) * 100 if dataset == 'ham' else total_top1 / total_num * 100
+        if logger_dir is not None:
+            df = pd.DataFrame(columns=['target', 'prediction'])
+            df['target'] = tar_hist
+            df['prediction'] = pred_hist
+            logger_csv_dir = os.path.join(logger_dir, 'epochs')
+            if not os.path.exists(logger_csv_dir):
+                os.mkdir(logger_csv_dir)
+            df.to_csv(os.path.join(logger_csv_dir, f'epoch{epoch}.csv'))
+
+    return total_top1 / total_num * 100
 
 # knn monitor as in InstDisc https://arxiv.org/abs/1805.01978
 # implementation follows http://github.com/zhirongw/lemniscate.pytorch and https://github.com/leftthomas/SimCLR

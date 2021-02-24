@@ -48,9 +48,11 @@ def get_args():
     parser.add_argument('--download', action='store_true', help="if can't find dataset, download from web")
     parser.add_argument('--data_dir', type=str, default=os.getenv('DATA'))
     parser.add_argument('--log_dir', type=str, default=os.getenv('LOG'))
-    parser.add_argument('--ckpt_dir', type=str, default=os.getenv('CHECKPOINT'))
+    # parser.add_argument('--ckpt_dir', type=str, default=os.getenv('CHECKPOINT'))
     parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu')
+    parser.add_argument('--resume_from', type=int, default=None)
     parser.add_argument('--eval_from', type=str, default=None)
+    parser.add_argument('--ckpt_epoch', type=int, default=None)
     parser.add_argument('--hide_progress', action='store_true')
     args = parser.parse_args()
 
@@ -70,13 +72,14 @@ def get_args():
         args.dataset.num_workers = 0
 
 
-    assert not None in [args.log_dir, args.data_dir, args.ckpt_dir, args.name]
+    assert not None in [args.log_dir, args.data_dir, args.name]
 
-    args.log_dir = os.path.join(args.log_dir, 'in-progress_'+datetime.now().strftime('%m%d%H%M%S_')+args.name)
+    args.log_dir = os.path.join(args.log_dir, args.name)
 
-    os.makedirs(args.log_dir, exist_ok=False)
+    if not os.path.exists(args.log_dir):
+        os.makedirs(args.log_dir, exist_ok=False)
     print(f'creating file {args.log_dir}')
-    os.makedirs(args.ckpt_dir, exist_ok=True)
+    # os.makedirs(args.ckpt_dir, exist_ok=True)
 
     shutil.copy2(args.config_file, args.log_dir)
     set_deterministic(args.seed)

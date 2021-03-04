@@ -1,21 +1,15 @@
 import os
 import torch
-import torch.nn as nn
-import torch.nn.functional as F 
-import torchvision
-import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from arguments import get_args
 from augmentations import get_aug
 from models import get_model
-from tools import AverageMeter, knn_monitor, Logger, file_exist_check
+from tools import knn_monitor, Logger
 from datasets import get_dataset
 from optimizers import get_optimizer, LR_Scheduler
 from linear_eval import main as linear_eval
-from datetime import datetime
-from torch.cuda.amp import autocast, GradScaler
-from copy import deepcopy
+from torch.cuda.amp import GradScaler
 
 def main(device, args):
 
@@ -56,23 +50,6 @@ def main(device, args):
         print(f'Resume from epoch: {args.resume_from}')
         checkpoint = os.path.join(args.log_dir, 'models', f'{args.name}_epoch{args.resume_from}.pth')
         model.load_state_dict(torch.load(checkpoint)['state_dict'])
-
-    # if args.model.cifar_pretrain is True:
-    #     cifar_epoch = 100
-    #     pretrain = f'logs/simsiam-cifar10-experiment-resnet50_for_ham/models/simsiam-cifar10-experiment-resnet50_for_ham_epoch{cifar_epoch}.pth'
-    #     if 'backbone' in args.name:
-    #         pre_model = get_model(args.model).to(device)
-    #         pre_model.load_state_dict(torch.load(pretrain)['state_dict'])
-    #         # model.encoder = deepcopy(pre_model.encoder)
-    #         # model.predictor = deepcopy(pre_model.predictor)
-    #         # model.backbone = deepcopy(pre_model.backbone)
-    #         model.backbone.root = deepcopy(pre_model.backbone.root)
-    #         model.backbone.body = deepcopy(pre_model.backbone.body)
-    #         model.backbone.head = deepcopy(pre_model.backbone.head)
-    #         print('Load cifar pretrained model backbone')
-    #     else:
-    #         model.load_state_dict(torch.load(pretrain)['state_dict'])
-    #         print('Load cifar pretrained model')
 
     model = torch.nn.DataParallel(model)
     scalar = GradScaler()
@@ -166,9 +143,9 @@ def main(device, args):
     print(f"Model saved to {model_path}")
 
     # linear eval
-    # if args.eval is not False:
-    #     args.eval_from = model_path
-    #     linear_eval(args)
+    if args.eval is not False:
+        args.eval_from = model_path
+        linear_eval(args)
 
 
 if __name__ == "__main__":

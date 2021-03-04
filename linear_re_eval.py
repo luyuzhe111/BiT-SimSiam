@@ -12,10 +12,8 @@ from optimizers import get_optimizer, LR_Scheduler
 from tools import AverageMeter
 from sklearn.metrics import balanced_accuracy_score, confusion_matrix, f1_score
 import pandas as pd
-import sys
 from copy import deepcopy
 from tools.focal_loss import FocalLoss
-from tools.torchsampler import ImbalancedDatasetSampler
 
 args = get_args()
 ckpt_epoch = args.ckpt_epoch
@@ -133,7 +131,6 @@ for epoch in global_progress:
         local_progress.set_postfix({'lr': lr, "loss": loss_meter.val, 'loss_avg': loss_meter.avg})
 
     print(f'loss: {loss_meter.val} | loss_avg: {loss_meter.avg} | b_acc: {balanced_accuracy_score(tar_hist, pred_hist) * 100}')
-    # local_progress.set_description({"loss": loss_meter.val, 'loss_avg': loss_meter.avg, 'b_acc': balanced_accuracy_score(tar_hist, pred_hist) * 100})
 
     # validation
     loss_meter.reset()
@@ -164,7 +161,6 @@ for epoch in global_progress:
         best_classifier = deepcopy(classifier)
 
     print(f'loss: {loss_meter.val} | loss_avg: {loss_meter.avg} | b_acc: {b_acc * 100}\n')
-    # val_progress.set_description({"loss": loss_meter.val, 'loss_avg': loss_meter.avg, 'b_acc': b_acc * 100})
 
 
 best_classifier.eval()

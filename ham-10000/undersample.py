@@ -20,10 +20,9 @@ grouped_list = list(groups.values())
 
 undersampled_list = []
 for i in grouped_list:
-    # undersampled_list += random.choices(i, k=1000)
     undersampled_list += random.sample(i, 23)
 
 print(Counter([i['target'] for i in undersampled_list]))
 
-with open('ham-10000/json/validation_db_us.json', 'w') as f:
+with open('ham-10000/json/validation_us.json', 'w') as f:
     json.dump(undersampled_list, f)

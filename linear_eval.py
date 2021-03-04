@@ -1,12 +1,10 @@
-import os
 import torch
 import torch.nn as nn
-import torch.nn.functional as F 
-import torchvision
+import torch.nn.functional as F
 from tqdm import tqdm
 from arguments import get_args
 from augmentations import get_aug
-from models import get_model, get_backbone
+from models import get_backbone
 from tools import AverageMeter
 from datasets import get_dataset
 from optimizers import get_optimizer, LR_Scheduler

@@ -15,6 +15,7 @@ from optimizers import get_optimizer, LR_Scheduler
 from linear_eval import main as linear_eval
 from datetime import datetime
 from torch.cuda.amp import autocast, GradScaler
+from copy import deepcopy
 
 def main(device, args):
 
@@ -52,9 +53,26 @@ def main(device, args):
 
     # resume training
     if args.resume_from is not None:
-        print(f'resume from epoch: {args.resume_from}')
+        print(f'Resume from epoch: {args.resume_from}')
         checkpoint = os.path.join(args.log_dir, 'models', f'{args.name}_epoch{args.resume_from}.pth')
         model.load_state_dict(torch.load(checkpoint)['state_dict'])
+
+    # if args.model.cifar_pretrain is True:
+    #     cifar_epoch = 100
+    #     pretrain = f'logs/simsiam-cifar10-experiment-resnet50_for_ham/models/simsiam-cifar10-experiment-resnet50_for_ham_epoch{cifar_epoch}.pth'
+    #     if 'backbone' in args.name:
+    #         pre_model = get_model(args.model).to(device)
+    #         pre_model.load_state_dict(torch.load(pretrain)['state_dict'])
+    #         # model.encoder = deepcopy(pre_model.encoder)
+    #         # model.predictor = deepcopy(pre_model.predictor)
+    #         # model.backbone = deepcopy(pre_model.backbone)
+    #         model.backbone.root = deepcopy(pre_model.backbone.root)
+    #         model.backbone.body = deepcopy(pre_model.backbone.body)
+    #         model.backbone.head = deepcopy(pre_model.backbone.head)
+    #         print('Load cifar pretrained model backbone')
+    #     else:
+    #         model.load_state_dict(torch.load(pretrain)['state_dict'])
+    #         print('Load cifar pretrained model')
 
     model = torch.nn.DataParallel(model)
     scalar = GradScaler()
@@ -118,7 +136,7 @@ def main(device, args):
         acc_hist.append(accuracy)
         loss_hist.append(loss.item())
 
-        if (epoch + 1) % 5 == 0:
+        if (epoch + 1) % 25 == 0:
             ckpt_dir = os.path.join(args.log_dir, 'models')
             if not os.path.exists(ckpt_dir):
                 os.mkdir(ckpt_dir)
@@ -129,21 +147,21 @@ def main(device, args):
             }, model_path)
             print(f"Model saved to {model_path}")
 
-    # save csv logger
-    if args.resume_from is not None:
-        logger_csv = pd.read_csv(f'logs/{args.name}/logger.csv', index_col=0)
-        logger_csv_new = pd.DataFrame({'epoch': epoch_hist, 'loss': loss_hist, 'acc': acc_hist})
-        logger_csv = logger_csv.append(logger_csv_new, ignore_index=True)
-    else:
-        logger_csv = pd.DataFrame({'epoch': epoch_hist, 'loss': loss_hist, 'acc': acc_hist})
+        # save csv logger
+        if args.resume_from is not None:
+            logger_csv = pd.read_csv(f'logs/{args.name}/logger.csv', index_col=0)
+            logger_csv_new = pd.DataFrame({'epoch': epoch_hist, 'loss': loss_hist, 'acc': acc_hist})
+            logger_csv = logger_csv.append(logger_csv_new, ignore_index=True)
+        else:
+            logger_csv = pd.DataFrame({'epoch': epoch_hist, 'loss': loss_hist, 'acc': acc_hist})
 
-    logger_csv.to_csv(os.path.join(args.log_dir, 'logger.csv'))
+        logger_csv.to_csv(os.path.join(args.log_dir, 'logger_resume.csv'))
     
     # Save checkpoint
     ckpt_dir = os.path.join(args.log_dir, 'models')
     model_path = os.path.join(ckpt_dir, f"{args.name}.pth")  # datetime.now().strftime('%Y%m%d_%H%M%S')
     torch.save({
-        'state_dict':model.module.state_dict()
+        'state_dict': model.module.state_dict()
     }, model_path)
     print(f"Model saved to {model_path}")
 

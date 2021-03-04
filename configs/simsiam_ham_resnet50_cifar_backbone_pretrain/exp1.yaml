@@ -1,4 +1,4 @@
-name: bit-ham-experiment-resnet50_medium-exp1
+name: simsiam-ham-resnet50_cifar_backbone_pretrain-exp1
 dataset: 
   name: ham
   image_size: 224
@@ -6,8 +6,9 @@ dataset:
 
 model: 
   name: simsiam
-  backbone: bit_m_resnet50
-  pretrain: True
+  backbone: simsiam_resnet50_small_scratch
+  cifar_pretrain: True
+  pretrain: False
   adapt: False
   proj_layers: 2
 
@@ -33,10 +34,10 @@ eval: # linear evaluation, False will turn off automatic evaluation after traini
     momentum: 0.9
   warmup_lr: 0
   warmup_epochs: 0
-  base_lr: 3
+  base_lr: 30
   final_lr: 0
   batch_size: 128
-  num_epochs: 60
+  num_epochs: 90
 
 logger:
   tensorboard: True

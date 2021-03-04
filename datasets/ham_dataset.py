@@ -20,10 +20,14 @@ class DataLoader(data.Dataset):
 
         with open(data_dir) as json_file:
             data = json.load(json_file)
-            if split == 'train' and finetune:
+            if split == 'val' and finetune:
                 random.seed(0)
                 random.shuffle(data)
-                data = data[:int(len(data)/3)]
+                data = data[:int(len(data)/2)]
+            elif split == 'val' and not finetune:
+                random.seed(0)
+                random.shuffle(data)
+                data = data[int(len(data) / 2):]
 
         self.data = data
         self.data_dir = data_dir

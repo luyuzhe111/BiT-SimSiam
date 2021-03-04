@@ -33,10 +33,10 @@ eval: # linear evaluation, False will turn off automatic evaluation after traini
     momentum: 0.9
   warmup_lr: 0
   warmup_epochs: 0
-  base_lr: 30
+  base_lr: 3
   final_lr: 0
   batch_size: 128
-  num_epochs: 90
+  num_epochs: 60
 
 logger:
   tensorboard: True

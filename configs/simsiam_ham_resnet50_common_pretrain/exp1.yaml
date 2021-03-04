@@ -1,4 +1,4 @@
-name: bit-ham-experiment-resnet50_medium-exp1
+name: simsiam-ham-resnet50_common_pretrain-exp1
 dataset: 
   name: ham
   image_size: 224
@@ -6,7 +6,7 @@ dataset:
 
 model: 
   name: simsiam
-  backbone: bit_m_resnet50
+  backbone: simsiam_resnet50_common_scratch
   pretrain: True
   adapt: False
   proj_layers: 2
@@ -21,7 +21,7 @@ train:
   base_lr: 0.03
   final_lr: 0
   num_epochs: 800 # this parameter influence the lr decay
-  stop_at_epoch: 200 # has to be smaller than num_epochs
+  stop_at_epoch: 400 # has to be smaller than num_epochs
   batch_size: 128
   knn_monitor: True # knn monitor will take more time
   knn_interval: 1

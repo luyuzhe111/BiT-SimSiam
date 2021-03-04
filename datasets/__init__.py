@@ -4,7 +4,7 @@ from .random_dataset import RandomDataset
 from .ham_dataset import DataLoader
 
 
-def get_dataset(dataset, data_dir, transform, train=True, validation=False, download=False, debug_subset_size=None):
+def get_dataset(dataset, data_dir, transform, train=True, validation=False, finetune=False, download=False, debug_subset_size=None):
     if dataset == 'mnist':
         dataset = torchvision.datasets.MNIST(data_dir, train=train, transform=transform, download=download)
     elif dataset == 'stl10':
@@ -20,12 +20,11 @@ def get_dataset(dataset, data_dir, transform, train=True, validation=False, down
     elif dataset == 'ham':
         if train:
             split = 'train'
-        elif not train and not validation:
-            split = 'test'
-        else:
+        elif validation:
             split = 'val'
-
-        dataset = DataLoader(data_dir, transform=transform, split=split)
+        else:
+            split = 'test'
+        dataset = DataLoader(data_dir, transform=transform, split=split, finetune=finetune)
     else:
         raise NotImplementedError
 

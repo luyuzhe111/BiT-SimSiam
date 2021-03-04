@@ -10,35 +10,41 @@ from augmentations import get_aug
 from datasets import get_dataset
 from optimizers import get_optimizer, LR_Scheduler
 from tools import AverageMeter
-from sklearn.metrics import balanced_accuracy_score, confusion_matrix
+from sklearn.metrics import balanced_accuracy_score, confusion_matrix, f1_score
 import pandas as pd
 import sys
 from copy import deepcopy
 from tools.focal_loss import FocalLoss
+from tools.torchsampler import ImbalancedDatasetSampler
 
 args = get_args()
 ckpt_epoch = args.ckpt_epoch
 
-if 'bit' not in args.name:
+if 'bit' in args.name or 'common' in args.name:
+    model = get_model(args.model).to(args.device)
+    model = model.backbone
+
+else:
     checkpoint = os.path.join(args.log_dir, 'models', f'{args.name}_epoch{ckpt_epoch}.pth')
     model = get_model(args.model).to(args.device)
     model.load_state_dict(torch.load(checkpoint)['state_dict'])
     print(f'Loaded {args.name}_epoch{ckpt_epoch}.pth')
     model = model.backbone
 
-else:
-    model = get_model(args.model).to(args.device)
-    model = model.backbone
+dataset = get_dataset(
+        transform=get_aug(train=False, train_classifier=True, **args.aug_kwargs),
+        train=False,
+        validation=True,
+        finetune=True,
+        **args.dataset_kwargs
+        )
 
 train_loader = torch.utils.data.DataLoader(
-    dataset=get_dataset(
-        transform=get_aug(train=False, train_classifier=True, **args.aug_kwargs),
-        train=True,
-        **args.dataset_kwargs
-    ),
+    dataset=dataset,
+    # sampler=ImbalancedDatasetSampler(dataset),
     batch_size=args.eval.batch_size,
     shuffle=True,
-    **args.dataloader_kwargs
+    num_workers=4
 )
 
 val_loader = torch.utils.data.DataLoader(
@@ -50,7 +56,7 @@ val_loader = torch.utils.data.DataLoader(
     ),
     batch_size=args.eval.batch_size,
     shuffle=False,
-    **args.dataloader_kwargs
+    num_workers=4
 )
 
 test_loader = torch.utils.data.DataLoader(
@@ -61,7 +67,7 @@ test_loader = torch.utils.data.DataLoader(
     ),
     batch_size=args.eval.batch_size,
     shuffle=False,
-    **args.dataloader_kwargs
+    num_workers=4
 )
 
 
@@ -87,7 +93,7 @@ lr_scheduler = LR_Scheduler(
     len(train_loader),
 )
 
-# criterion = FocalLoss(gamma=2)
+criterion = FocalLoss(gamma=2)
 
 loss_meter = AverageMeter(name='Loss')
 acc_meter = AverageMeter(name='Accuracy')
@@ -111,8 +117,8 @@ for epoch in global_progress:
             feature = model(images.to(args.device))
 
         preds = classifier(feature)
-        loss = F.cross_entropy(preds, labels.to(args.device))
-        # loss = criterion(preds, labels.to(args.device))
+        # loss = F.cross_entropy(preds, labels.to(args.device))
+        loss = criterion(preds, labels.to(args.device))
 
         sm = nn.Softmax(dim=1)
         pred_tar = sm(preds).max(dim=1)[1].cpu()
@@ -140,7 +146,8 @@ for epoch in global_progress:
             feature = model(images.to(args.device))
             preds = classifier(feature)
 
-            loss = F.cross_entropy(preds, labels.to(args.device))
+            # loss = F.cross_entropy(preds, labels.to(args.device))
+            loss = criterion(preds, labels.to(args.device))
 
             sm = nn.Softmax(dim=1)
             pred_tar = sm(preds).max(dim=1)[1].cpu()
@@ -177,8 +184,8 @@ for idx, (images, labels) in enumerate(test_loader):
         acc_meter.update(correct / preds.shape[0])
 
 
-print(f'Accuracy = {acc_meter.avg * 100:.2f}')
 print(f'Balanced Accuracy = {balanced_accuracy_score(tar_hist, pred_hist) * 100}')
+print(f'Balanced f1 = {sum(f1_score(tar_hist, pred_hist, average=None)) / len(f1_score(tar_hist, pred_hist, average=None)) * 100}')
 print(confusion_matrix(tar_hist, pred_hist))
 
 df = pd.DataFrame(columns=['gh', 'pred'])
@@ -187,4 +194,4 @@ df['pred'] = pred_hist
 root_dir = os.path.join('eval_logs', args.name)
 if not os.path.exists(root_dir):
     os.mkdir(root_dir)
-df.to_csv(os.path.join(root_dir, f'epoch{ckpt_epoch}.csv'))
+df.to_csv(os.path.join(root_dir, f'epoch{ckpt_epoch}_fl_2.csv'))

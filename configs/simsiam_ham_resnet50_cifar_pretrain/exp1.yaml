@@ -1,4 +1,4 @@
-name: simsiam-ham-resnet50_small_pretrain_adapt-exp1
+name: simsiam-ham-resnet50_cifar_pretrain-exp1
 dataset: 
   name: ham
   image_size: 224
@@ -7,8 +7,9 @@ dataset:
 model: 
   name: simsiam
   backbone: simsiam_resnet50_small_scratch
-  pretrain: True
-  adapt: True
+  cifar_pretrain: True
+  pretrain: False
+  adapt: False
   proj_layers: 2
 
 train:
@@ -21,7 +22,7 @@ train:
   base_lr: 0.03
   final_lr: 0
   num_epochs: 800 # this parameter influence the lr decay
-  stop_at_epoch: 100 # has to be smaller than num_epochs
+  stop_at_epoch: 200 # has to be smaller than num_epochs
   batch_size: 128
   knn_monitor: True # knn monitor will take more time
   knn_interval: 1
